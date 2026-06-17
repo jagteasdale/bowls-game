@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+
+# editor cruft
+*.swp
+*~
+
+# note: the PICO-8 web export (bowls.html, bowls.js, index.html) IS committed on purpose
+# so GitHub Pages can serve it. re-export from PICO-8 and re-commit to update the web build.
+
+# kept LOCAL-ONLY: the character bible draws affectionate composites from real club members,
+# so we don't publish it on the (public) repo. it still exists in your working tree.
+docs/characters.md
