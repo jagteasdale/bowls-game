@@ -57,48 +57,61 @@ _draw() -- must not error on the title screen (the nil-jack guard)
 press(5); _update60(); release() -- start the end
 out("after start: phase=" .. G.phase .. "  jack=(" ..
   string.format("%.1f,%.1f", G.jack.x, G.jack.y) .. ")")
+-- up/down: the jack must sit toward the OPPOSITE corner from the mat
+local mat1x, mat1y = G.mat.x, G.mat.y
+assert(mat1x * G.jack.x < 0 and mat1y * G.jack.y < 0, "jack should be in the opposite corner to the mat")
 
--- run frames until the end is scored, supplying confirm presses when a phase
--- is waiting on the player. guard against an infinite loop.
-local frames = 0
-while G.phase ~= "result" and frames < 6000 do
-  local p = G.phase
-  if p == "wood_select" or p == "aim" or p == "power" then
-    press(5) -- confirm wood / lock aim / lock power
-  else
-    release() -- deliver, cpu_think advance on their own
+-- play frames until the end is scored, confirming whenever a phase waits on the player,
+-- and rendering every frame to exercise all the draw paths (incl. the flipped down-end).
+local function play_to_result()
+  local frames = 0
+  while G.phase ~= "result" and frames < 6000 do
+    local p = G.phase
+    if p == "wood_select" or p == "aim" or p == "power" then
+      press(5) -- confirm wood / lock aim / lock power
+    else
+      release() -- deliver, cpu_think advance on their own
+    end
+    _update60()
+    _draw()
+    frames = frames + 1
   end
-  _update60()
-  _draw() -- render every frame too, to exercise all the draw paths
-  frames = frames + 1
+  assert(G.phase == "result", "end did not reach result (stuck in '" .. G.phase ..
+    "' after " .. frames .. " frames)")
+  assert(#G.woods >= 1, "expected at least one wood on the green, got " .. #G.woods)
+  assert(G.result ~= nil, "no result computed")
+  return frames
 end
 
-assert(G.phase == "result", "end did not reach result (stuck in '" .. G.phase ..
-  "' after " .. frames .. " frames)")
-assert(#G.woods >= 1, "expected at least one wood on the green, got " .. #G.woods)
-assert(G.result ~= nil, "no result computed")
+-- end 1 (up, from corner A)
+local f1 = play_to_result()
+out(string.format("end 1 (up)   scored in %d frames: %d woods, holder=%s points=%d",
+  f1, #G.woods, tostring(G.result.holder), G.result.points))
 
-out(string.format("end scored in %d frames: %d woods on green, holder=%s points=%d",
-  frames, #G.woods, tostring(G.result.holder), G.result.points))
-out("score: you=" .. G.score[TEAM_PLAYER] .. " cap=" .. G.score[TEAM_CPU])
-
--- start a second end to confirm the result->next-end transition works
+-- start a second end; it must play "down" from the OPPOSITE corner
 press(5); _update60(); release()
 assert(G.phase ~= "result", "should have left result on confirm")
-out("second end started ok (phase=" .. G.phase .. ")")
+assert(G.mat.x == -mat1x and G.mat.y == -mat1y, "end 2 mat should be the opposite corner to end 1")
+local f2 = play_to_result() -- exercises down-end update + draw paths for crashes
+out(string.format("end 2 (down) scored in %d frames: mat flipped (%.0f,%.0f)->(%.0f,%.0f)",
+  f2, mat1x, mat1y, -mat1x, -mat1y))
+out("score: you=" .. G.score[TEAM_PLAYER] .. " cap=" .. G.score[TEAM_CPU])
+
+-- start a third end so the swing-back check below runs against a fresh head
+press(5); _update60(); release()
 
 -- ---- swing-back check: aiming WIDE should hook BACK toward the line of play ----
 -- this validates the sign convention in side_from_t against the real physics.
 do
   local function offset_from_line(t, biasturn)
     local dx, dy = dir_from_t(t)
-    local w = physics.new_wood(GREEN.mat_x, GREEN.mat_y, dx, dy, 0.7, WOODS[1], side_from_t(t), TEAM_PLAYER)
+    local w = physics.new_wood(G.mat.x, G.mat.y, dx, dy, 0.7, WOODS[1], side_from_t(t), TEAM_PLAYER)
     local c = {}; for k, v in pairs(CFG) do c[k] = v end
     c.bias_turn = biasturn
     physics.simulate(w, c, 3000)
     -- perpendicular distance of the resting wood from the mat->jack line
     local bx, by = aim_base()
-    local px, py = w.x - GREEN.mat_x, w.y - GREEN.mat_y
+    local px, py = w.x - G.mat.x, w.y - G.mat.y
     return abs(bx * py - by * px)
   end
   local with_bias = offset_from_line(0.4, CFG.bias_turn)

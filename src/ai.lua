@@ -6,7 +6,7 @@
 local function predict(wood, t, p)
   local dx, dy = dir_from_t(t)
   local spd = speed_from_p(p)
-  local w = physics.new_wood(GREEN.mat_x, GREEN.mat_y, dx, dy, spd, wood, side_from_t(t), TEAM_CPU)
+  local w = physics.new_wood(G.mat.x, G.mat.y, dx, dy, spd, wood, side_from_t(t), TEAM_CPU)
   physics.simulate(w, CFG, 1200) -- woods rest well within this; caps the per-think cost
   return w
 end

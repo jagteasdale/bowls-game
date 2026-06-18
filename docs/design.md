@@ -28,12 +28,17 @@ between them.
 ## 3. Core mechanic (the moment-to-moment)
 
 Inspired by NES golf:
-1. **Select a wood** — woods differ in size, weight, and bias (trade-offs, not strict upgrades).
+1. **Select a wood (once per end)** — woods differ in size, weight, and bias (trade-offs, not
+   strict upgrades). You pick your wood at the start of each end; both of your woods that end are
+   that style. (Realistically players pick per match, but per-end keeps it lively.)
 2. **Aim** — a line pivots back and forth across an arc; time a button press to lock the angle.
    Because woods are heavily biased, you aim *wide* and let the curve bring the wood in.
 3. **Power** — a bar fills up and down; time a button press to lock delivery weight (speed).
 4. **Deliver** — the wood rolls a long way, running fairly straight before its bias draws it in
    late, and comes to rest. Read the result, adjust, bowl again.
+
+Ends are played **"up" then "down"**: each end the mat switches to the opposite corner and you
+bowl back down the diagonal, just like crossing ends on a real green.
 
 ## 4. Game modes
 
@@ -42,18 +47,22 @@ A bracket of opponents, each a distinct personality and playstyle. Beat them in 
 a shield. Difficulty and "tells" vary per opponent. This is the spine of the single-player game.
 
 ### 4b. Hotseat multiplayer (core)
-Two players pass the controller. Singles, and eventually doubles (two woods each, alternating).
+Two players pass the controller. Enter names before playing (defaults **"Red"** and **"Blue"**).
+**First to 11** points wins. Singles first, doubles later (two woods each, alternating).
 
 ### 4c. The hidden layer (long-term ambition)
-A social-sim / visual-novel mode that reveals itself gradually as the player progresses —
-conversations, rivalries, alliances, club politics. The drama between the personalities is the
-real long-term draw. Built as a separate cart/module that shares save state (see Architecture).
+A social-sim / visual-novel mode that reveals itself gradually once you reach the podium —
+the clubhouse, the pub, club politics, and an arc that builds toward challenging for the
+captaincy. The drama between the personalities is the real long-term draw. Built as a **separate
+cart** that shares save state via `cartdata` (see Architecture). *Detailed design is kept
+local-only in `social-sim.md` (not in this public repo) — it's pointed satire of real members.*
 
 ## 5. Characters
 
-See [`characters.md`](characters.md). Approach: **original archetype personas** (e.g. "The
-Captain") that draw **composite, affectionate-satire** elements from recognisable club
-personalities — a gentler GTA. No one-to-one real people.
+Approach: **original archetype personas** (e.g. "The Captain") that draw **composite,
+affectionate-satire** elements from recognisable club personalities — a gentler GTA. No
+one-to-one real people. *The roster bible is kept local-only in `characters.md` (not published
+to this public repo).*
 
 ## 6. Look & feel
 
@@ -64,13 +73,15 @@ personalities — a gentler GTA. No one-to-one real people.
 
 ## 7. Roadmap (after the slice)
 
-1. **Slice (now):** one end, one opponent, full mechanic, headless-tested core.
-2. Multiple woods + full match (multiple ends, target score).
-3. Knockout bracket + shield + 3–5 opponents with distinct AI.
-4. Hotseat multiplayer (singles, then doubles).
-5. Music, polish, title/menu, save system (`cartdata`).
-6. Social-sim layer as a second cart; prove multi-cart + web export early (see physics-notes
-   and the plan's export spike).
+1. **Slice (done):** one end, one opponent, full mechanic, headless-tested core.
+2. **Gameplay (done):** wood-per-end selection; ends played up/down (mat alternates corners).
+3. **Match structure:** play ends to a target — **first to 11** — with running score and the
+   up/down rhythm. (Single-player vs The Captain and multiplayer both ride on this.)
+4. **Hotseat multiplayer:** name entry (defaults Red / Blue), pass-the-controller, first to 11.
+5. **Knockout bracket + shield + 3–5 opponents** with distinct AI and tells.
+6. Music, polish, title/menu, save system (`cartdata`).
+7. **Social-sim layer as a second cart** (see `social-sim.md`, local-only); prove the
+   multi-cart + web export path early (the plan's export spike).
 
 ## 8. Platform & risks
 

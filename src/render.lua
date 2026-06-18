@@ -35,12 +35,13 @@ local function draw_green()
   local gx1, gy1 = project(GREEN.hw, GREEN.hl)
   rectfill(gx0, gy0, gx1, gy1, 3)
   rect(gx0, gy0, gx1, gy1, 11) -- rink edge
-  -- the line of play: mat corner -> opposite corner (the long diagonal)
-  local mx, my = project(GREEN.mat_x, GREEN.mat_y)
-  local ox, oy = project(-GREEN.mat_x, -GREEN.mat_y)
-  line(mx, my, ox, oy, 5)
-  -- the mat
-  rectfill(mx - 4, my - 2, mx + 4, my + 2, 4)
+  -- line of play + mat: only once an end is set up (G.mat alternates corner each end)
+  if G.mat then
+    local mx, my = project(G.mat.x, G.mat.y)
+    local ox, oy = project(-G.mat.x, -G.mat.y)
+    line(mx, my, ox, oy, 5) -- the long diagonal, this end's direction
+    rectfill(mx - 4, my - 2, mx + 4, my + 2, 4) -- the mat
+  end
 end
 
 -- ---- woods + jack ---------------------------------------------------------
@@ -66,8 +67,8 @@ end
 
 local function draw_aim_line(t)
   local dx, dy = dir_from_t(t)
-  local x0, y0 = project(GREEN.mat_x, GREEN.mat_y)
-  local x1, y1 = project(GREEN.mat_x + dx * 34, GREEN.mat_y + dy * 34)
+  local x0, y0 = project(G.mat.x, G.mat.y)
+  local x1, y1 = project(G.mat.x + dx * 34, G.mat.y + dy * 34)
   line(x0, y0, x1, y1, 7)
   circfill(x1, y1, 1, 7)
 end

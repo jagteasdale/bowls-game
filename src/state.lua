@@ -3,7 +3,7 @@
 
 -- phases:
 --  "title"       attract / opponent intro
---  "wood_select" player chooses a wood
+--  "wood_select" player chooses ONE wood for the whole end (both their woods)
 --  "aim"         pivoting aim line; lock the angle
 --  "power"       rising/falling power bar; lock the weight
 --  "cpu_think"   the captain decides (brief pause)
@@ -14,10 +14,10 @@ G = {}
 
 -- ---- pure helpers shared by player + ai ------------------------------------
 
--- the line of play: a unit vector from the mat toward the jack (the "head").
+-- the line of play: a unit vector from the (current) mat toward the jack (the "head").
 function aim_base()
-  local bx = G.jack.x - GREEN.mat_x
-  local by = G.jack.y - GREEN.mat_y
+  local bx = G.jack.x - G.mat.x
+  local by = G.jack.y - G.mat.y
   local m = sqrt(bx * bx + by * by)
   return bx / m, by / m
 end
@@ -58,6 +58,9 @@ function new_game()
   G.order = {} -- no end in progress yet; keeps the hud safe on the title screen
   G.turn = 1
   G.sel = 1
+  G.player_wood = 1 -- the wood chosen for the current end (both of the player's woods)
+  G.end_no = 0
+  G.mat = nil
   G.jack = nil
   G.live = nil
   G.result = nil
@@ -69,21 +72,26 @@ function start_end()
   G.woods = {}
   G.live = nil
   G.result = nil
-  -- jack out toward the OPPOSITE corner from the mat, at a variable length so reading
-  -- the weight ("will it get there?") is the core tension.
-  G.jack = { x = -(3 + rnd(15)), y = -(2 + rnd(13)) }
+  -- ends are played "up" then "down": the mat alternates corner each end (odd = corner A,
+  -- even = the opposite corner) and the jack goes out toward the far corner.
+  G.end_no = G.end_no + 1
+  local s = (G.end_no % 2 == 1) and 1 or -1
+  G.mat = { x = GREEN.mat_x * s, y = GREEN.mat_y * s }
+  -- jack toward the OPPOSITE corner, at a variable length so reading the weight
+  -- ("will it get there?") is the core tension.
+  G.jack = { x = -s * (3 + rnd(15)), y = -s * (2 + rnd(13)) }
   -- singles, two woods each, alternating; player leads
   G.order = { TEAM_PLAYER, TEAM_CPU, TEAM_PLAYER, TEAM_CPU }
   G.turn = 1
-  begin_turn()
+  -- choose your wood ONCE for the whole end before the first delivery
+  G.phase = "wood_select"
+  G.msg = "choose your wood for this end"
 end
 
 function begin_turn()
   local team = G.order[G.turn]
   if team == TEAM_PLAYER then
-    G.phase = "wood_select"
-    G.sel = G.sel or 1
-    G.msg = "choose your wood"
+    start_player_aim()
   else
     G.phase = "cpu_think"
     G.timer = 40
@@ -92,11 +100,19 @@ function begin_turn()
   end
 end
 
--- build a live wood and start it rolling
+-- start the player's aim sweep for a delivery (wood already chosen for the end)
+function start_player_aim()
+  G.aim_t = -1
+  G.aim_dir = 1
+  G.phase = "aim"
+  G.msg = "press x to set the line"
+end
+
+-- build a live wood and start it rolling from the current mat
 function launch_wood(team, wood, t, p)
   local dx, dy = dir_from_t(t)
   local spd = speed_from_p(p)
-  G.live = physics.new_wood(GREEN.mat_x, GREEN.mat_y, dx, dy, spd, wood, side_from_t(t), team)
+  G.live = physics.new_wood(G.mat.x, G.mat.y, dx, dy, spd, wood, side_from_t(t), team)
   G.phase = "deliver"
 end
 

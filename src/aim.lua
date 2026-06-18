@@ -1,6 +1,7 @@
 -- aim.lua -- the player's input phases: pick a wood, time the aim, time the power.
 -- (pico-8 file. button 5 = X/x button = confirm/lock; 0/1 = left/right.)
 
+-- pick ONE wood for the whole end; on confirm, hand off to the first delivery.
 function update_wood_select()
   if btnp(0) then
     G.sel = G.sel - 1
@@ -10,11 +11,8 @@ function update_wood_select()
     if G.sel > #WOODS then G.sel = 1 end
   end
   if btnp(5) then
-    -- begin the aim sweep
-    G.aim_t = -1
-    G.aim_dir = 1
-    G.phase = "aim"
-    G.msg = "press x to set the line"
+    G.player_wood = G.sel -- locked in for both of the player's woods this end
+    begin_turn()
   end
 end
 
@@ -49,7 +47,7 @@ function update_power()
     G.pow_dir = 1
   end
   if btnp(5) then
-    launch_wood(TEAM_PLAYER, WOODS[G.sel], G.aim_locked_t, G.pow_p)
+    launch_wood(TEAM_PLAYER, WOODS[G.player_wood], G.aim_locked_t, G.pow_p)
     G.msg = ""
   end
 end
