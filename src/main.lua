@@ -32,7 +32,11 @@ end
 
 function _update60()
   if G.phase == "title" then
-    if btnp(5) then start_end() end
+    update_title_menu()
+  elseif G.phase == "name_entry" then
+    update_name_entry()
+  elseif G.phase == "handoff" then
+    update_handoff()
   elseif G.phase == "wood_select" then
     update_wood_select()
   elseif G.phase == "aim" then
@@ -44,7 +48,9 @@ function _update60()
   elseif G.phase == "deliver" then
     update_deliver()
   elseif G.phase == "result" then
-    if btnp(5) then start_end() end
+    if btnp(5) then after_result() end
+  elseif G.phase == "match_over" then
+    if btnp(5) then new_game() end
   end
 end
 

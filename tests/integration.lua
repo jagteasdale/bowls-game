@@ -1,6 +1,6 @@
--- integration.lua -- drives a FULL end through the real pico-8 game code with the
--- pico-8 API stubbed out. catches undefined globals, bad cross-references and
--- state-machine dead-ends that the headless unit tests can't see.
+-- integration.lua -- drives whole MATCHES through the real pico-8 game code with the
+-- pico-8 API stubbed. catches undefined globals, bad cross-references and state-machine
+-- dead-ends. (logic only -- stubbed graphics can't see visual bugs.)
 --
 -- usage:  lua tests/integration.lua
 
@@ -12,13 +12,12 @@ flr = math.floor
 abs = math.abs
 function sgn(x) return (x or 0) < 0 and -1 or 1 end
 function mid(a, b, c)
-  -- median of three (pico-8 clamp)
-  local lo = math.min(a, b, c)
-  local hi = math.max(a, b, c)
+  local lo = math.min(a, b, c); local hi = math.max(a, b, c)
   return a + b + c - lo - hi
 end
 function rnd(x) x = x or 1; return math.random() * x end
 function tostr(x) return tostring(x) end
+function sub(s, i, j) return string.sub(s, i, j or #s) end
 function add(t, v) t[#t + 1] = v; return v end
 function del(t, v)
   for i = 1, #t do if t[i] == v then table.remove(t, i); return v end end
@@ -27,12 +26,10 @@ function all(t)
   local i = 0
   return function() i = i + 1; return t[i] end
 end
--- graphics: no-ops (we only care that they're CALLED without error)
 local function noop() end
 cls, pset, line, rect, rectfill, circ, circfill, oval, ovalfill = noop, noop, noop, noop, noop, noop, noop, noop, noop
 function print(...) end -- stubbed; use out() for harness messages
 
--- button state, controlled by the harness
 local BTN = {}
 function btnp(b) return BTN[b] == true end
 function btn(b) return BTN[b] == true end
@@ -41,67 +38,105 @@ function btn(b) return BTN[b] == true end
 local root = "/Users/josephteasdale/bowls-game/"
 for _, f in ipairs({
   "src/data.lua", "src/physics.lua", "src/score.lua",
-  "src/state.lua", "src/aim.lua", "src/render.lua", "src/ai.lua", "src/main.lua",
+  "src/state.lua", "src/aim.lua", "src/menu.lua", "src/ai.lua", "src/render.lua", "src/main.lua",
 }) do
   dofile(root .. f)
 end
 
--- ---- drive a full end -------------------------------------------------------
-local function press(b) BTN = {}; BTN[b] = true end
-local function release() BTN = {} end
-
-_init()
-assert(G.phase == "title", "should start on title")
-_draw() -- must not error on the title screen (the nil-jack guard)
-
-press(5); _update60(); release() -- start the end
-out("after start: phase=" .. G.phase .. "  jack=(" ..
-  string.format("%.1f,%.1f", G.jack.x, G.jack.y) .. ")")
--- up/down: the jack must sit toward the OPPOSITE corner from the mat
-local mat1x, mat1y = G.mat.x, G.mat.y
-assert(mat1x * G.jack.x < 0 and mat1y * G.jack.y < 0, "jack should be in the opposite corner to the mat")
-
--- play frames until the end is scored, confirming whenever a phase waits on the player,
--- and rendering every frame to exercise all the draw paths (incl. the flipped down-end).
-local function play_to_result()
-  local frames = 0
-  while G.phase ~= "result" and frames < 6000 do
-    local p = G.phase
-    if p == "wood_select" or p == "aim" or p == "power" then
-      press(5) -- confirm wood / lock aim / lock power
-    else
-      release() -- deliver, cpu_think advance on their own
-    end
-    _update60()
-    _draw()
-    frames = frames + 1
-  end
-  assert(G.phase == "result", "end did not reach result (stuck in '" .. G.phase ..
-    "' after " .. frames .. " frames)")
-  assert(#G.woods >= 1, "expected at least one wood on the green, got " .. #G.woods)
-  assert(G.result ~= nil, "no result computed")
-  return frames
+-- run one frame with the given buttons pressed (single-frame = edge press)
+local function frame(buttons)
+  BTN = {}
+  if buttons then for _, b in ipairs(buttons) do BTN[b] = true end end
+  _update60()
+  _draw() -- exercise every draw path each frame
+  BTN = {}
 end
 
--- end 1 (up, from corner A)
-local f1 = play_to_result()
-out(string.format("end 1 (up)   scored in %d frames: %d woods, holder=%s points=%d",
-  f1, #G.woods, tostring(G.result.holder), G.result.points))
+-- play frames until phase==target (or cap). interactive phases get a confirm; aim/power
+-- lock after a UNIFORMLY random delay so the locked sweep position is well spread (a fixed
+-- per-frame probability would bias toward the start of the sweep -> degenerate shots).
+local function run_until(target, cap)
+  local n, watching, countdown = 0, nil, 0
+  while G.phase ~= target and n < cap do
+    local p = G.phase
+    local press = {}
+    if p == "aim" or p == "power" then
+      if watching ~= p then watching = p; countdown = math.random(4, 90) end
+      if countdown <= 0 then press = { 5 } else countdown = countdown - 1 end
+    else
+      watching = nil
+      if p == "wood_select" or p == "handoff" or p == "result" then press = { 5 } end
+    end
+    frame(press)
+    n = n + 1
+  end
+  assert(G.phase == target, "did not reach '" .. target .. "' (stuck in '" .. G.phase ..
+    "' after " .. n .. " frames; score " .. G.score[TEAM_PLAYER] .. "-" .. G.score[TEAM_CPU] .. ")")
+  return n
+end
 
--- start a second end; it must play "down" from the OPPOSITE corner
-press(5); _update60(); release()
-assert(G.phase ~= "result", "should have left result on confirm")
-assert(G.mat.x == -mat1x and G.mat.y == -mat1y, "end 2 mat should be the opposite corner to end 1")
-local f2 = play_to_result() -- exercises down-end update + draw paths for crashes
-out(string.format("end 2 (down) scored in %d frames: mat flipped (%.0f,%.0f)->(%.0f,%.0f)",
-  f2, mat1x, mat1y, -mat1x, -mat1y))
-out("score: you=" .. G.score[TEAM_PLAYER] .. " cap=" .. G.score[TEAM_CPU])
+-- ============================================================================
+out("== name-entry machinery ==")
+begin_name_entry()
+assert(entry_to_name() == "red", "player-1 default name should be 'red', got " .. entry_to_name())
+G.entry[1] = letter_index("z")
+assert(entry_to_name() == "zed", "editing first letter should give 'zed', got " .. entry_to_name())
+G.entry_team = TEAM_CPU; set_entry_default(TEAM_CPU)
+assert(entry_to_name() == "blue", "player-2 default name should be 'blue', got " .. entry_to_name())
 
--- start a third end so the swing-back check below runs against a fresh head
-press(5); _update60(); release()
+-- ============================================================================
+out("\n== solo match (1 player vs the captain, first to " .. TARGET_SCORE .. ") ==")
+_init()
+assert(G.phase == "title", "boots to title menu")
+_draw()
 
--- ---- swing-back check: aiming WIDE should hook BACK toward the line of play ----
--- this validates the sign convention in side_from_t against the real physics.
+frame({ 5 }) -- title: option 1 (1 player) is default-selected
+assert(G.mode == "solo" and G.phase == "wood_select", "1-player pick enters wood select")
+assert(G.human[TEAM_PLAYER] and not G.human[TEAM_CPU], "solo: only team 1 is human")
+local mat1x, mat1y = G.mat.x, G.mat.y
+assert(mat1x * G.jack.x < 0 and mat1y * G.jack.y < 0, "jack sits in the opposite corner to the mat")
+
+-- play the FIRST end, confirm the up/down flip and winner-leads on the second
+run_until("result", 6000)
+local end1_holder = G.result.holder
+frame({ 5 }) -- after_result -> next end (no winner yet)
+assert(G.phase ~= "result", "left the result screen")
+assert(G.mat.x == -mat1x and G.mat.y == -mat1y, "end 2 plays from the opposite corner (up/down)")
+-- the end-1 winner leads end 2 (or, on a no-score end, team 1 still leads)
+assert(G.order[1] == (end1_holder or TEAM_PLAYER), "winner of the last end bowls first next end")
+
+-- now run the whole match out to a winner
+run_until("match_over", 200000)
+assert(G.winner ~= nil, "a winner is set")
+assert(G.score[G.winner] >= TARGET_SCORE, "winner reached the target score")
+out(string.format("solo match over: %s %d - %d %s", G.names[TEAM_PLAYER], G.score[TEAM_PLAYER],
+  G.score[TEAM_CPU], G.names[TEAM_CPU]))
+frame({ 5 }) -- match_over -> back to title
+assert(G.phase == "title", "match over returns to the title menu")
+
+-- ============================================================================
+out("\n== versus match (2 players, hotseat) ==")
+_init()
+frame({ 3 }) -- title: move selection down to "2 players"
+assert(G.menu_sel == 2, "menu moved to 2-player option")
+frame({ 5 }) -- select -> name entry
+assert(G.phase == "name_entry", "2-player pick enters name entry")
+frame({ 5 }) -- accept player-1 default (red)
+frame({ 5 }) -- accept player-2 default (blue) -> start match
+assert(G.mode == "versus", "versus mode set")
+assert(G.human[TEAM_PLAYER] and G.human[TEAM_CPU], "both teams are human")
+assert(G.names[TEAM_PLAYER] == "red" and G.names[TEAM_CPU] == "blue", "default hotseat names")
+assert(G.phase == "handoff", "first human turn opens with a controller handoff")
+
+-- both teams human => no cpu_think; the match runs entirely through handoffs/aim/power
+run_until("match_over", 300000)
+assert(G.winner ~= nil and G.score[G.winner] >= TARGET_SCORE, "versus match produced a winner at target")
+out(string.format("versus match over: %s %d - %d %s", G.names[TEAM_PLAYER], G.score[TEAM_PLAYER],
+  G.score[TEAM_CPU], G.names[TEAM_CPU]))
+
+-- ============================================================================
+out("\n== swing-back physics (aim wide -> hook back to the line) ==")
+_init(); frame({ 5 }) -- into a solo end so G.mat / G.jack exist
 do
   local function offset_from_line(t, biasturn)
     local dx, dy = dir_from_t(t)
@@ -109,15 +144,13 @@ do
     local c = {}; for k, v in pairs(CFG) do c[k] = v end
     c.bias_turn = biasturn
     physics.simulate(w, c, 3000)
-    -- perpendicular distance of the resting wood from the mat->jack line
     local bx, by = aim_base()
-    local px, py = w.x - G.mat.x, w.y - G.mat.y
-    return abs(bx * py - by * px)
+    return abs(bx * (w.y - G.mat.y) - by * (w.x - G.mat.x))
   end
   local with_bias = offset_from_line(0.4, CFG.bias_turn)
   local no_bias = offset_from_line(0.4, 0)
-  out(string.format("swing-back: wide aim offset from line  with-bias=%.1f  no-bias=%.1f", with_bias, no_bias))
-  assert(with_bias < no_bias, "bias must pull a wide delivery BACK toward the line (flip side_from_t)")
+  out(string.format("offset from line  with-bias=%.1f  no-bias=%.1f", with_bias, no_bias))
+  assert(with_bias < no_bias, "bias must pull a wide delivery back toward the line")
 end
 
 out("\nINTEGRATION OK")

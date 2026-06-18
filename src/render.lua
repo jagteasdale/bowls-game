@@ -46,8 +46,9 @@ end
 
 -- ---- woods + jack ---------------------------------------------------------
 
+-- team 1 = red, team 2 = blue (matches the default hotseat names Red / Blue)
 local function team_col(owner)
-  if owner == TEAM_PLAYER then return 12 else return 8 end
+  if owner == TEAM_PLAYER then return 8 else return 12 end
 end
 
 local function draw_wood(w)
@@ -92,11 +93,13 @@ end
 
 local function draw_hud()
   rectfill(0, 0, 127, 7, 1)
-  print("you " .. G.score[TEAM_PLAYER], 2, 1, 12)
-  print("cap " .. G.score[TEAM_CPU], 90, 1, 8)
+  -- team 1 name + score (left), team 2 name + score (right, target shown)
+  print(G.names[TEAM_PLAYER] .. " " .. G.score[TEAM_PLAYER], 2, 1, team_col(TEAM_PLAYER))
+  local r = G.names[TEAM_CPU] .. " " .. G.score[TEAM_CPU]
+  print(r, 126 - #r * 4, 1, team_col(TEAM_CPU))
   -- woods remaining this end, as pips
-  for i = 1, woods_left(TEAM_PLAYER) do circfill(40 + i * 5, 3, 1, 12) end
-  for i = 1, woods_left(TEAM_CPU) do circfill(74 - i * 5, 3, 1, 8) end
+  for i = 1, woods_left(TEAM_PLAYER) do circfill(50 + i * 5, 3, 1, team_col(TEAM_PLAYER)) end
+  for i = 1, woods_left(TEAM_CPU) do circfill(78 - i * 5, 3, 1, team_col(TEAM_CPU)) end
   if G.msg ~= "" then
     print(G.msg, 2, 120, 7)
   end
@@ -123,12 +126,63 @@ local function draw_result()
   for i = 1, #r.ranked do
     local e = r.ranked[i]
     local c = team_col(e.wood.owner)
-    local tag = e.wood.owner == TEAM_PLAYER and "you" or "cap"
-    print(tag .. " " .. fmt1(e.dist) .. "ft", 30, y, c)
+    print(sub(G.names[e.wood.owner], 1, 3) .. " " .. fmt1(e.dist) .. "ft", 30, y, c)
     y = y + 7
   end
   print(G.msg, 26, y + 2, 7)
-  print("x: next end", 36, 88, 6)
+  print("x: continue", 36, 88, 6)
+end
+
+-- ---- front-end screens ----------------------------------------------------
+
+local function draw_title_menu()
+  rectfill(10, 30, 117, 98, 0)
+  rect(10, 30, 117, 98, 7)
+  print("elizabethan bowls", 22, 38, 11)
+  local opts = { "1 player  (vs " .. CAPTAIN.name .. ")", "2 players (hotseat)" }
+  for i = 1, 2 do
+    local y = 54 + i * 10
+    local sel = (G.menu_sel == i)
+    if sel then print(">", 20, y, 7) end
+    print(opts[i], 28, y, sel and 7 or 5)
+  end
+  print("first to " .. TARGET_SCORE .. " wins", 30, 82, 6)
+  print("up/down: choose   x: ok", 16, 90, 6)
+end
+
+local function draw_name_entry()
+  rectfill(10, 34, 117, 94, 0)
+  rect(10, 34, 117, 94, 7)
+  local who = (G.entry_team == TEAM_PLAYER) and "player 1" or "player 2"
+  print("enter name - " .. who, 22, 40, team_col(G.entry_team))
+  local x0 = 64 - NAME_MAX * 4
+  for i = 1, NAME_MAX do
+    local x = x0 + (i - 1) * 8
+    if i == G.entry_cursor then rectfill(x - 1, 57, x + 5, 67, 5) end
+    print(sub(NAME_LETTERS, G.entry[i], G.entry[i]), x, 59, 7)
+    print("-", x, 67, 6)
+  end
+  print("arrows: edit    x: ok", 20, 82, 6)
+end
+
+local function draw_handoff()
+  rectfill(14, 44, 113, 86, 0)
+  rect(14, 44, 113, 86, 7)
+  print("pass the controller to", 22, 52, 7)
+  local nm = G.names[G.handoff_team]
+  print(nm, 64 - #nm * 2, 64, team_col(G.handoff_team))
+  print("x: ready", 46, 76, 6)
+end
+
+local function draw_match_over()
+  rectfill(14, 40, 113, 92, 0)
+  rect(14, 40, 113, 92, 7)
+  print("match over", 44, 46, 10)
+  local nm = G.names[G.winner]
+  print(nm .. " wins!", 64 - (#nm + 6) * 2, 58, team_col(G.winner))
+  print(G.names[TEAM_PLAYER] .. " " .. G.score[TEAM_PLAYER] .. " - " ..
+    G.score[TEAM_CPU] .. " " .. G.names[TEAM_CPU], 24, 70, 6)
+  print("x: title", 46, 84, 6)
 end
 
 -- the main draw, dispatched by phase
@@ -151,15 +205,16 @@ function draw_game()
   draw_hud()
 
   if G.phase == "title" then
-    rectfill(10, 36, 117, 92, 0)
-    rect(10, 36, 117, 92, 7)
-    print("elizabethan bowls", 22, 44, 11)
-    print("vs " .. CAPTAIN.name, 30, 56, 8)
-    print(CAPTAIN.blurb, 16, 66, 6)
-    print("x: bowl", 48, 82, 7)
+    draw_title_menu()
+  elseif G.phase == "name_entry" then
+    draw_name_entry()
+  elseif G.phase == "handoff" then
+    draw_handoff()
   elseif G.phase == "wood_select" then
     draw_wood_select()
   elseif G.phase == "result" then
     draw_result()
+  elseif G.phase == "match_over" then
+    draw_match_over()
   end
 end

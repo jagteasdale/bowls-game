@@ -11,8 +11,8 @@ function update_wood_select()
     if G.sel > #WOODS then G.sel = 1 end
   end
   if btnp(5) then
-    G.player_wood = G.sel -- locked in for both of the player's woods this end
-    begin_turn()
+    G.team_wood[current_team()] = G.sel -- locked in for both of this team's woods this end
+    start_player_aim()
   end
 end
 
@@ -47,7 +47,8 @@ function update_power()
     G.pow_dir = 1
   end
   if btnp(5) then
-    launch_wood(TEAM_PLAYER, WOODS[G.player_wood], G.aim_locked_t, G.pow_p)
+    local team = current_team()
+    launch_wood(team, WOODS[G.team_wood[team]], G.aim_locked_t, G.pow_p)
     G.msg = ""
   end
 end

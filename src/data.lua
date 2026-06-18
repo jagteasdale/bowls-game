@@ -51,9 +51,14 @@ AIM = {
   speed_max = 1.00,  -- launch speed at 100% power (sails through)
 }
 
--- team ids
+-- team ids (in 2-player mode TEAM_CPU is simply the second human)
 TEAM_PLAYER = 1
 TEAM_CPU    = 2
+
+-- match / multiplayer
+TARGET_SCORE = 11   -- first to this many points wins the match
+NAME_MAX     = 6    -- max characters in a hotseat player name
+NAME_LETTERS = " abcdefghijklmnopqrstuvwxyz" -- index 1 is space
 
 -- the vertical slice's single opponent.
 -- skill: 0 = perfect; higher = more aim/power error (jitter band).

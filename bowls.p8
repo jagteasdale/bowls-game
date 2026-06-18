@@ -10,6 +10,7 @@ __lua__
 #include src/score.lua
 #include src/state.lua
 #include src/aim.lua
+#include src/menu.lua
 #include src/ai.lua
 #include src/render.lua
 #include src/main.lua
