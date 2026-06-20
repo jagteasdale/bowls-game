@@ -117,8 +117,8 @@ assert(G.phase == "title", "match over returns to the title menu")
 -- ============================================================================
 out("\n== versus match (2 players, hotseat) ==")
 _init()
-frame({ 3 }) -- title: move selection down to "2 players"
-assert(G.menu_sel == 2, "menu moved to 2-player option")
+frame({ 3 }); frame({ 3 }) -- title: down twice to "2 players" (3rd option)
+assert(G.menu_sel == 3, "menu moved to the 2-player option")
 frame({ 5 }) -- select -> name entry
 assert(G.phase == "name_entry", "2-player pick enters name entry")
 frame({ 5 }) -- accept player-1 default (red)
@@ -133,6 +133,41 @@ run_until("match_over", 300000)
 assert(G.winner ~= nil and G.score[G.winner] >= TARGET_SCORE, "versus match produced a winner at target")
 out(string.format("versus match over: %s %d - %d %s", G.names[TEAM_PLAYER], G.score[TEAM_PLAYER],
   G.score[TEAM_CPU], G.names[TEAM_CPU]))
+
+-- ============================================================================
+out("\n== shield (knockout tournament) ==")
+-- progression logic: beating every opponent in turn wins the shield
+_init()
+start_shield()
+for s = 1, #ROSTER do
+  assert(G.phase == "intro", "round " .. s .. " opens on the intro screen")
+  assert(G.opponent == ROSTER[s], "intro shows roster opponent " .. s)
+  assert(G.names[TEAM_CPU] == ROSTER[s].name, "team 2 is named for the opponent")
+  G.winner = TEAM_PLAYER -- simulate winning this round's match
+  after_match()
+end
+assert(G.phase == "shield_won", "beating the whole bracket wins the shield")
+out("beat all " .. #ROSTER .. " opponents -> shield_won")
+
+-- menu -> shield -> intro -> a REAL match, then routing by who wins
+_init()
+frame({ 3 }) -- title: move down to "shield" (option 2)
+assert(G.menu_sel == 2, "menu sits on the shield option")
+frame({ 5 }) -- select shield -> round 1 intro
+assert(G.phase == "intro" and G.mode == "shield", "shield enters the intro screen")
+assert(G.opponent == ROSTER[1] and G.names[TEAM_CPU] == ROSTER[1].name, "round-1 opponent set")
+frame({ 5 }) -- intro -> start the match
+assert(G.mode == "shield" and G.opponent == ROSTER[1], "match runs vs the round-1 opponent")
+run_until("match_over", 200000)
+local sw = G.winner
+frame({ 5 }) -- after_match routes by result
+if sw == TEAM_PLAYER then
+  assert(G.phase == "intro" and G.shield_stage == 2, "a win advances to round 2")
+  out("shield match: player won round 1 -> round 2 intro")
+else
+  assert(G.phase == "title", "a loss knocks you out to the title")
+  out("shield match: player lost round 1 -> back to title")
+end
 
 -- ============================================================================
 out("\n== swing-back physics (aim wide -> hook back to the line) ==")

@@ -136,18 +136,59 @@ end
 -- ---- front-end screens ----------------------------------------------------
 
 local function draw_title_menu()
-  rectfill(10, 30, 117, 98, 0)
-  rect(10, 30, 117, 98, 7)
-  print("elizabethan bowls", 22, 38, 11)
-  local opts = { "1 player  (vs " .. CAPTAIN.name .. ")", "2 players (hotseat)" }
-  for i = 1, 2 do
-    local y = 54 + i * 10
+  rectfill(10, 28, 117, 100, 0)
+  rect(10, 28, 117, 100, 7)
+  print("elizabethan bowls", 22, 34, 11)
+  local opts = { "quick match", "shield", "2 players" }
+  for i = 1, 3 do
+    local y = 46 + i * 9
     local sel = (G.menu_sel == i)
-    if sel then print(">", 20, y, 7) end
-    print(opts[i], 28, y, sel and 7 or 5)
+    if sel then print(">", 24, y, 7) end
+    print(opts[i], 32, y, sel and 7 or 5)
   end
-  print("first to " .. TARGET_SCORE .. " wins", 30, 82, 6)
-  print("up/down: choose   x: ok", 16, 90, 6)
+  print("first to " .. TARGET_SCORE .. " wins", 30, 84, 6)
+  print("up/down   x: ok", 32, 92, 6)
+end
+
+-- placeholder opponent portrait. swap the body for spr(opp.face, x0, y0, 5, 6)
+-- once you've drawn the pixel-art faces in the PICO-8 sprite editor.
+local function draw_portrait(opp, x0, y0, x1, y1)
+  rectfill(x0, y0, x1, y1, 5)
+  rect(x0, y0, x1, y1, 7)
+  local cx, cy = (x0 + x1) / 2, (y0 + y1) / 2 - 2
+  circfill(cx, cy, 11, 15)            -- head
+  circ(cx, cy, 11, 4)
+  pset(cx - 4, cy - 2, 0); pset(cx + 4, cy - 2, 0) -- eyes
+  line(cx - 3, cy + 5, cx + 3, cy + 5, 0)          -- mouth
+  print(sub(opp.name, 5, 5), cx - 1, y1 - 7, 6)    -- initial (skips "the ")
+end
+
+local function draw_intro()
+  cls(1)
+  local opp = G.opponent
+  print("shield  round " .. G.shield_stage .. "/" .. #ROSTER, 28, 12, 10)
+  draw_portrait(opp, 10, 28, 50, 76)
+  rectfill(56, 28, 120, 76, 0)
+  rect(56, 28, 120, 76, 7)
+  print(opp.name, 60, 33, team_col(TEAM_CPU))
+  local y = 44
+  for i = 1, #opp.dialogue do
+    print(opp.dialogue[i], 60, y, 7)
+    y = y + 7
+  end
+  print("x: bowl", 48, 92, 6)
+end
+
+local function draw_shield_won()
+  cls(1)
+  print("shield won!", 38, 28, 10)
+  local cx = 64
+  rectfill(cx - 8, 50, cx + 8, 52, 9) -- rim
+  circfill(cx, 54, 7, 9)              -- cup
+  rectfill(cx - 2, 60, cx + 2, 68, 9) -- stem
+  rectfill(cx - 9, 68, cx + 9, 71, 4) -- base
+  print("champion of the club", 22, 86, 7)
+  print("x: title", 46, 98, 6)
 end
 
 local function draw_name_entry()
@@ -202,12 +243,18 @@ function draw_game()
     draw_power_bar(G.pow_p)
   end
 
-  draw_hud()
+  -- the score HUD only belongs on play screens, not the front-end / intro / win screens
+  if G.phase ~= "title" and G.phase ~= "name_entry" and G.phase ~= "intro"
+      and G.phase ~= "shield_won" then
+    draw_hud()
+  end
 
   if G.phase == "title" then
     draw_title_menu()
   elseif G.phase == "name_entry" then
     draw_name_entry()
+  elseif G.phase == "intro" then
+    draw_intro()
   elseif G.phase == "handoff" then
     draw_handoff()
   elseif G.phase == "wood_select" then
@@ -216,5 +263,7 @@ function draw_game()
     draw_result()
   elseif G.phase == "match_over" then
     draw_match_over()
+  elseif G.phase == "shield_won" then
+    draw_shield_won()
   end
 end

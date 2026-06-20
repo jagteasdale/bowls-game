@@ -35,6 +35,8 @@ function _update60()
     update_title_menu()
   elseif G.phase == "name_entry" then
     update_name_entry()
+  elseif G.phase == "intro" then
+    update_intro()
   elseif G.phase == "handoff" then
     update_handoff()
   elseif G.phase == "wood_select" then
@@ -50,6 +52,8 @@ function _update60()
   elseif G.phase == "result" then
     if btnp(5) then after_result() end
   elseif G.phase == "match_over" then
+    if btnp(5) then after_match() end
+  elseif G.phase == "shield_won" then
     if btnp(5) then new_game() end
   end
 end

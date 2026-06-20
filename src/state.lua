@@ -83,17 +83,55 @@ function new_game()
   G.lead = TEAM_PLAYER -- which team bowls first this end (the previous end's winner)
   -- default to a 1-player setup until a mode is chosen
   G.mode = "solo"
+  G.opponent = CAPTAIN -- the CPU persona (generalised; shield swaps this per round)
+  G.shield_stage = 1
   G.human = { [TEAM_PLAYER] = true, [TEAM_CPU] = false }
   G.names = { [TEAM_PLAYER] = "you", [TEAM_CPU] = CAPTAIN.name }
   G.msg = ""
 end
 
--- start a 1-player match vs The Captain
+-- start a 1-player "quick match" vs The Captain
 function start_solo()
   G.mode = "solo"
   G.human = { [TEAM_PLAYER] = true, [TEAM_CPU] = false }
-  G.names = { [TEAM_PLAYER] = "you", [TEAM_CPU] = CAPTAIN.name }
+  set_opponent(CAPTAIN)
   start_match()
+end
+
+-- ---- shield (knockout tournament) ------------------------------------------
+
+-- point the CPU side at a persona and label team 2 with its name
+function set_opponent(persona)
+  G.opponent = persona
+  G.names[TEAM_PLAYER] = "you"
+  G.names[TEAM_CPU] = persona.name
+end
+
+function start_shield()
+  G.mode = "shield"
+  G.human = { [TEAM_PLAYER] = true, [TEAM_CPU] = false }
+  G.shield_stage = 1
+  show_intro()
+end
+
+-- show the current round's opponent intro (portrait + dialogue), then the match
+function show_intro()
+  set_opponent(ROSTER[G.shield_stage])
+  G.phase = "intro"
+end
+
+-- called from the match-over screen: route by mode/result
+function after_match()
+  if G.mode == "shield" and G.winner == TEAM_PLAYER then
+    G.shield_stage = G.shield_stage + 1
+    if G.shield_stage > #ROSTER then
+      G.phase = "shield_won"
+    else
+      show_intro() -- next round
+    end
+  else
+    new_game() -- quick match / versus done, or shield knockout -> back to title
+  end
 end
 
 -- start a 2-player hotseat match (names already in G.names)
@@ -143,8 +181,8 @@ function begin_turn()
   else
     G.phase = "cpu_think"
     G.timer = 40
-    G.cpu = ai_choose(CAPTAIN, G.jack, G.woods)
-    G.msg = CAPTAIN.name .. " lines it up..."
+    G.cpu = ai_choose(G.opponent, G.jack, G.woods)
+    G.msg = G.opponent.name .. " lines it up..."
   end
 end
 

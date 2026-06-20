@@ -3,15 +3,25 @@
 
 -- ---- title: choose 1 or 2 players ------------------------------------------
 
+-- menu options: 1 = quick match (vs the captain), 2 = shield, 3 = 2 players
 function update_title_menu()
   if btnp(2) and G.menu_sel > 1 then G.menu_sel = G.menu_sel - 1 end
-  if btnp(3) and G.menu_sel < 2 then G.menu_sel = G.menu_sel + 1 end
+  if btnp(3) and G.menu_sel < 3 then G.menu_sel = G.menu_sel + 1 end
   if btnp(5) then
     if G.menu_sel == 1 then
       start_solo()
+    elseif G.menu_sel == 2 then
+      start_shield()
     else
       begin_name_entry()
     end
+  end
+end
+
+-- opponent intro screen: press X to start the round's match
+function update_intro()
+  if btnp(5) then
+    start_match()
   end
 end
 

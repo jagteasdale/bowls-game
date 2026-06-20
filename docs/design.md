@@ -42,9 +42,20 @@ bowl back down the diagonal, just like crossing ends on a real green.
 
 ## 4. Game modes
 
-### 4a. Knockout tournament (core single-player)
-A bracket of opponents, each a distinct personality and playstyle. Beat them in sequence to win
-a shield. Difficulty and "tells" vary per opponent. This is the spine of the single-player game.
+The title menu offers three modes: **Quick Match** (1:1 vs The Captain), **Shield** (the
+knockout tournament), and **2 Players** (hotseat).
+
+### 4a. Shield — knockout tournament (core single-player) — *scaffolded*
+A bracket of opponents (`ROSTER` in `data.lua`), each a distinct persona and difficulty, played
+in sequence to win the shield. Each round opens on an **intro screen**: the opponent's portrait
+beside a dialogue box with their line, then into a match to 11. Win to advance; lose and you're
+knocked out. Difficulty rises through the bracket, with The Captain as the final.
+*Built: menu entry, roster, generalised CPU opponent (`G.opponent`), intro screen, bracket
+progression, and a shield-won screen. Portraits are procedural placeholders — real pixel-art
+faces go in reserved sprite slots (`face` per opponent), drawn in the PICO-8 sprite editor.*
+
+### 4a-quick. Quick Match
+The original 1:1 vs The Captain (a one-off match to 11), kept as its own menu entry.
 
 ### 4b. Hotseat multiplayer (core)
 Two players pass the controller. Enter names before playing (defaults **"Red"** and **"Blue"**).
@@ -78,8 +89,10 @@ to this public repo).*
 3. **Match structure:** play ends to a target — **first to 11** — with running score and the
    up/down rhythm. (Single-player vs The Captain and multiplayer both ride on this.)
 4. **Hotseat multiplayer:** name entry (defaults Red / Blue), pass-the-controller, first to 11.
-5. **Knockout bracket + shield + 3–5 opponents** with distinct AI and tells.
-6. Music, polish, title/menu, save system (`cartdata`).
+5. **Shield knockout (scaffolded):** menu entry, opponent roster, per-round intro screens
+   (portrait + dialogue), bracket progression, shield-won screen. *Next: real portrait art,
+   per-opponent tells/AI personality, doubles.*
+6. Music, polish, save system (`cartdata`).
 7. **Social-sim layer as a second cart** (see `social-sim.md`, local-only); prove the
    multi-cart + web export path early (the plan's export spike).
 

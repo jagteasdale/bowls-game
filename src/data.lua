@@ -60,13 +60,36 @@ TARGET_SCORE = 11   -- first to this many points wins the match
 NAME_MAX     = 6    -- max characters in a hotseat player name
 NAME_LETTERS = " abcdefghijklmnopqrstuvwxyz" -- index 1 is space
 
--- the vertical slice's single opponent.
--- skill: 0 = perfect; higher = more aim/power error (jitter band).
--- aggression: 0 = always draw to jack; 1 = will gamble on a firing shot.
+-- an AI opponent persona.
+--   skill:      aim/power error (0 = perfect; HIGHER = easier opponent)
+--   aggression: 0 = always draw to jack; 1 = will gamble on a firing shot
+--   wood_pref:  which WOODS entry it favours
+--   face:       reserved sprite id for portrait art (draw later in the sprite editor)
+--   dialogue:   intro lines, pre-wrapped to fit the box
 CAPTAIN = {
-  name = "THE CAPTAIN",
+  name = "the captain",
   blurb = "runs a tight ship. steady draw, no heroics.",
   wood_pref = 2,     -- favours the dependable HEAVY wood
-  skill = 0.10,      -- consistent
+  skill = 0.10,      -- consistent (the toughest)
   aggression = 0.15, -- rarely gambles
+  face = 4,
+  dialogue = { "so. you think", "you can take my", "shield from me.", "we'll see." },
+}
+
+-- the shield tournament roster, in bracket order (last entry = final boss).
+-- difficulty rises through the bracket (skill/error falls).
+ROSTER = {
+  {
+    name = "the wanderer", face = 1, wood_pref = 1, skill = 0.30, aggression = 0.45,
+    dialogue = { "you must be new.", "i've bowled greens", "everywhere. this one's", "nothing special." },
+  },
+  {
+    name = "the hustler", face = 2, wood_pref = 3, skill = 0.24, aggression = 0.65,
+    dialogue = { "fancy a small", "wager on it?", "...suit yourself." },
+  },
+  {
+    name = "the stalwart", face = 3, wood_pref = 2, skill = 0.18, aggression = 0.10,
+    dialogue = { "forty years i've", "bowled this rink.", "forty years." },
+  },
+  CAPTAIN, -- the final
 }
