@@ -55,6 +55,9 @@ AIM = {
 TEAM_PLAYER = 1
 TEAM_CPU    = 2
 
+-- developer cheats (see src/debug.lua). set false for a release build.
+DEBUG_CHEATS = true
+
 -- match / multiplayer
 TARGET_SCORE = 11   -- first to this many points wins the match
 NAME_MAX     = 6    -- max characters in a hotseat player name

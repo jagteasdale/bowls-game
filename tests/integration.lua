@@ -30,6 +30,9 @@ local function noop() end
 cls, pset, line, rect, rectfill, circ, circfill, oval, ovalfill = noop, noop, noop, noop, noop, noop, noop, noop, noop
 function print(...) end -- stubbed; use out() for harness messages
 
+function poke() end
+function stat(n) return "" end -- no devkit keyboard in the harness -> cheats stay inert
+
 local BTN = {}
 function btnp(b) return BTN[b] == true end
 function btn(b) return BTN[b] == true end
@@ -38,7 +41,8 @@ function btn(b) return BTN[b] == true end
 local root = "/Users/josephteasdale/bowls-game/"
 for _, f in ipairs({
   "src/data.lua", "src/physics.lua", "src/score.lua",
-  "src/state.lua", "src/aim.lua", "src/menu.lua", "src/ai.lua", "src/render.lua", "src/main.lua",
+  "src/state.lua", "src/aim.lua", "src/menu.lua", "src/ai.lua", "src/render.lua",
+  "src/debug.lua", "src/main.lua",
 }) do
   dofile(root .. f)
 end
@@ -168,6 +172,14 @@ else
   assert(G.phase == "title", "a loss knocks you out to the title")
   out("shield match: player lost round 1 -> back to title")
 end
+
+-- ============================================================================
+out("\n== debug cheats ==")
+_init(); frame({ 5 }) -- quick match (option 1) -> into the match
+debug_win_match(TEAM_PLAYER)
+assert(G.phase == "match_over" and G.winner == TEAM_PLAYER and G.score[TEAM_PLAYER] == G.target,
+  "debug_win_match ends the match for the player")
+out("debug_win_match -> match_over as winner OK")
 
 -- ============================================================================
 out("\n== swing-back physics (aim wide -> hook back to the line) ==")

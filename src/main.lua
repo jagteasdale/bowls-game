@@ -7,6 +7,7 @@ local DELIVER_STEPS = 1
 
 function _init()
   new_game()
+  debug_init()
 end
 
 local function update_deliver()
@@ -56,8 +57,10 @@ function _update60()
   elseif G.phase == "shield_won" then
     if btnp(5) then new_game() end
   end
+  debug_update()
 end
 
 function _draw()
   draw_game()
+  debug_draw()
 end
